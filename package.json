@@ -1,20 +1,29 @@
 
 {
   "name": "quant-gemini",
-  "version": "1.0.0",
-  "description": "AI-powered stock analysis platform.",
-  "main": "index.html",
+  "private": true,
+  "version": "1.1.0",
+  "type": "module",
   "scripts": {
-    "start": "npx serve .",
-    "dev": "npx serve ."
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
   },
-  "keywords": [
-    "stocks",
-    "gemini",
-    "ai",
-    "finance",
-    "trading"
-  ],
-  "author": "",
-  "license": "MIT"
+  "dependencies": {
+    "@google/genai": "^1.38.0",
+    "lucide-react": "^0.562.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "recharts": "^3.6.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.16",
+    "typescript": "~5.6.2",
+    "vite": "^6.0.1"
+  }
 }
