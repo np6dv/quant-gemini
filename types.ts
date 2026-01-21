@@ -1,4 +1,9 @@
 
+export interface ChartDataPoint {
+  time: string;
+  price: number;
+}
+
 export interface StockAnalysis {
   ticker: string;
   name: string;
@@ -32,9 +37,5 @@ export interface StockAnalysis {
     rationale: string;
   };
   sources: { title: string; uri: string }[];
-}
-
-export interface ChartDataPoint {
-  time: string;
-  price: number;
+  history: ChartDataPoint[];
 }

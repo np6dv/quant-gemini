@@ -1,21 +1,19 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { StockAnalysis } from "../types";
+import { StockAnalysis, ChartDataPoint } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export async function analyzeStock(ticker: string): Promise<StockAnalysis> {
   const model = "gemini-3-pro-preview";
   
-  const prompt = `Perform a comprehensive analysis for the stock ticker: ${ticker.toUpperCase()}. 
-  1. Technicals: Search for recent price, RSI, MACD, 50/200 SMA, Volume, and Short Interest.
-  2. News Sentiment: Search for the most recent news articles and headlines (past 7 days).
-     - Categorize overall sentiment (Positive/Negative/Neutral).
-     - Assign a sentiment score from 0 (very bearish) to 100 (very bullish).
-     - Identify top 3-4 news headlines, THEIR PUBLICATION DATES, and their likely impact on price.
-     - Provide a short-term outlook based on this sentiment.
+  const prompt = `Perform a comprehensive technical and sentiment analysis for the stock ticker: ${ticker.toUpperCase()}. 
+  1. Technicals: Use Google Search to find current price, RSI(14), MACD, 50/200 SMA, current Volume vs average, and Short Interest.
+  2. History: Find the closing prices for the last 5 trading days.
+  3. News: Search for the most recent 3-4 news headlines from the past 7 days.
+  4. Strategy: Define a specific Entry Point, a Take Profit (Upside Exit), and a Stop Loss (Downside Exit).
   
-  Return the analysis in a detailed structured format. Use Google Search grounding for real-time news and up-to-date data.`;
+  Return the results with deep reasoning. Focus on why the specific entry/exit points are chosen based on support/resistance or indicators.`;
 
   const response = await ai.models.generateContent({
     model: model,
@@ -36,7 +34,7 @@ export async function analyzeStock(ticker: string): Promise<StockAnalysis> {
 
   const structuredResponse = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Parse the following stock and news analysis text into a strict JSON object.
+    contents: `Parse this analysis into a JSON object. For the 'history' array, use the last 5 closing prices found in the text.
     Text: ${text}
     
     JSON Schema:
@@ -48,30 +46,18 @@ export async function analyzeStock(ticker: string): Promise<StockAnalysis> {
       "priceChangePercent": "string",
       "technicalSummary": "string",
       "indicators": {
-        "rsi": "string",
-        "macd": "string",
-        "movingAverages": "string",
-        "volumeProfile": "string",
-        "shortInterest": "string"
+        "rsi": "string", "macd": "string", "movingAverages": "string", "volumeProfile": "string", "shortInterest": "string"
       },
-      "momentum": {
-        "trend": "Bullish | Bearish | Neutral",
-        "strength": "string",
-        "description": "string"
-      },
+      "momentum": { "trend": "Bullish | Bearish | Neutral", "strength": "string", "description": "string" },
       "sentiment": {
-        "score": number,
-        "label": "Positive | Negative | Neutral",
+        "score": number, "label": "Positive | Negative | Neutral",
         "headlines": [{"title": "string", "source": "string", "date": "string", "impact": "High | Medium | Low"}],
         "shortTermOutlook": "string"
       },
       "strategy": {
-        "entryPoint": "string",
-        "takeProfit": "string",
-        "stopLoss": "string",
-        "downsideExit": "string",
-        "rationale": "string"
-      }
+        "entryPoint": "string", "takeProfit": "string", "stopLoss": "string", "downsideExit": "string", "rationale": "string"
+      },
+      "history": [{"time": "string", "price": number}]
     }`,
     config: {
       responseMimeType: "application/json",
@@ -79,22 +65,28 @@ export async function analyzeStock(ticker: string): Promise<StockAnalysis> {
   });
 
   const analysisJson = JSON.parse(structuredResponse.text);
+  
+  // Fallback for history if the model didn't find enough points
+  if (!analysisJson.history || analysisJson.history.length < 3) {
+    analysisJson.history = generateMockChartData(analysisJson.currentPrice);
+  }
+
   return {
     ...analysisJson,
     sources: sources,
   };
 }
 
-export function generateMockChartData(currentPrice: string): { time: string; price: number }[] {
+export function generateMockChartData(currentPrice: string): ChartDataPoint[] {
   const priceStr = currentPrice.replace(/[^0-9.]/g, '');
   const price = parseFloat(priceStr) || 150;
   const data = [];
   const now = new Date();
-  for (let i = 20; i >= 0; i--) {
+  for (let i = 5; i >= 0; i--) {
     const time = new Date(now.getTime() - i * 1000 * 60 * 60 * 24);
     data.push({
       time: time.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      price: price * (0.95 + Math.random() * 0.1),
+      price: price * (0.98 + Math.random() * 0.04),
     });
   }
   return data;
